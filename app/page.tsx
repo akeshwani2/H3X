@@ -52,14 +52,14 @@ export default function Home() {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <div className={`min-h-screen p-8 pb-20 gap-16 sm:p-12 ${outfit.className} bg-background text-foreground`}>
         <header className="mb-12 text-center">
-          <Image 
+          {/* <Image 
             className="mx-auto text-white mb-4"
-            src="/svg/lock-square-rounded.svg"
+            src="/svg/1test.png"
             alt="HTTP3 Logo"
-            width={110}
+            width={160}
             height={48}
             priority
-          />
+          /> */}
           <h1 className="text-7xl max-w-5xl mx-auto font-bold mb-4">
             <span style={{ textShadow: '0 0 15px rgba(0, 149, 255, 0.8), 0 0 25px rgba(0, 149, 255, 0.8), 0 0 35px rgba(0, 149, 255, 0.6)' }}>Elevating Web3 Hosting with {" "}</span>
             <span className="text-blue-700">Smart Contracts</span>

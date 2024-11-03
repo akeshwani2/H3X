@@ -19,12 +19,12 @@ export function Sidebar({ items, activeItem, setActiveItem }: SidebarProps) {
       <div className="p-6 border-b border-[#18181b]">
         <Link href="/" className="flex items-center space-x-2">
           <Image
-            src="/svg/lock-square-rounded.svg"
+            src="/svg/1test.png"
             alt="H3X logo"
-            width={60}
+            width={90}
             height={40}
           />
-          <span className="ml-2 text-3xl font-bold" style={{ textShadow: '0 0 15px rgba(0, 149, 255, 0.8), 0 0 25px rgba(0, 149, 255, 0.8), 0 0 35px rgba(0, 149, 255, 0.6)' }}>H3X</span>
+          <span className="text-3xl font-bold" style={{ textShadow: '0 0 15px rgba(0, 149, 255, 0.8), 0 0 25px rgba(0, 149, 255, 0.8), 0 0 35px rgba(0, 149, 255, 0.6)' }}>H3X</span>
         </Link>
       </div>
       <nav className="flex-1 p-4">
