@@ -39,7 +39,7 @@ export default function NavBar() {
         <>
             <nav className="flex justify-between items-center mb-1 py-2 pt-4 px-4 md:px-8 lg:px-16">
                 <Link href="/" className="flex items-center">
-                    <Image src="/svg/1test.png" alt="HTTP3 Logo" width={120} height={90} priority />
+                    <Image src="/svg/1test.png" alt="H3X Logo" width={120} height={90} priority />
                     <span className=" text-3xl font-bold" style={{ textShadow: '0 0 15px rgba(0, 149, 255, 0.8), 0 0 25px rgba(0, 149, 255, 0.8), 0 0 35px rgba(0, 149, 255, 0.6)' }}>H3X</span>
                 </Link>
                 <div className="hidden md:flex items-center space-x-4">

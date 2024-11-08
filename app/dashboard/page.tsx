@@ -1,13 +1,17 @@
 "use client";
-// 1:56:31
+// 2:01:45
 import { Activity, Clock, Cpu, GitBranch, Globe, Layout, LayoutTemplate, Loader2, Rocket, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Card, CardTitle, CardHeader, CardContent, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { usePrivy } from "@privy-io/react-auth";
+import { createWebpageWithName, getUserIdByEmail, getUserWebpages, getWebpageContent, initializeClients } from "@/utils/db/actions";
+import DeploymentVisual from "@/components/DeploymentVisual";
+
 
 
 type Webpage = {
@@ -35,11 +39,120 @@ export default function Dashboard() {
         { name: "Website Templates", icon: LayoutTemplate },
     ] as any;
 
+    const {user, authenticated} = usePrivy()
     const [selectedWebpage, setSelectedWebpage] = useState<Webpage | null>(null);
     const [activeTab, setActiveTab] = useState("Sites");
 
     const [domain, setDomain] = useState("");
     const [content, setContent] = useState("");
+    const [isDeploying, setIsDeploying] = useState(false);
+    const [deploymentError, setDeploymentError] = useState("");
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [userId, setUserId] = useState<number | null>(null);
+    const [deployedUrl, setDeployedUrl] = useState("");
+    const [w3name, setW3name] = useState<string | null>(null);
+    const [userWebpages, setUserWebpages] = useState<Webpage[]>([]);
+    
+    // handle deployment type shi
+
+
+    useEffect(() => {
+      async function init() {
+        try {
+          if(authenticated && user?.email?.address) {
+            console.log("Auth status:", authenticated);
+            console.log("User email:", user.email.address);
+            
+            // Initialize clients
+            await initializeClients(user.email.address);
+            console.log("Clients initialized successfully");
+            setIsInitialized(true);
+            
+            // Get user ID
+            const fetchedUserId = await getUserIdByEmail(user.email.address);
+            console.log("Fetched user ID:", fetchedUserId);
+            setUserId(fetchedUserId);
+          } else {
+            console.log("Not authenticated or no email:", {
+              authenticated,
+              email: user?.email?.address
+            });
+          }
+        } catch (error) {
+          console.error("Initialization error:", error);
+          setDeploymentError(error instanceof Error ? error.message : 'An unknown error occurred');
+          setIsInitialized(false);
+        }
+      }
+
+      init();
+    }, [authenticated, user])
+
+    useEffect(() => {
+      async function fetchUserId() {
+        if (authenticated && user?.email?.address) {
+          const fetchedUserId = await getUserIdByEmail(user?.email?.address);
+          console.log(fetchUserId)
+          console.log(user.email.address)
+          setUserId(fetchedUserId)
+        }
+      }
+      fetchUserId()
+    }, [authenticated, user])
+
+    useEffect(() => {
+      async function fetchUserWebpages() {
+        if (userId) {
+          const webpages = await getUserWebpages(userId);
+          console.log("Fetched webpages:", webpages);
+          setUserWebpages(webpages as Webpage[]);
+        }
+      }
+      fetchUserWebpages();
+    }, [userId]);
+
+    const handleDeploy = async () => {
+      setIsDeploying(true);
+      setDeploymentError("");
+      try {
+        if (!isInitialized) {
+          throw new Error("Clients not initialized");
+        }
+        if (userId === null) {
+          throw new Error("User not authenticated or ID not found");
+        }
+  
+        const { webpage, txHash, cid, deploymentUrl, name, w3nameUrl } =
+          await createWebpageWithName(userId, domain, content);
+  
+        setDeployedUrl(w3nameUrl || deploymentUrl);
+        setW3name(name);
+        console.log(
+          `Deployed successfully. Transaction hash: ${txHash}, CID: ${cid}, URL: ${
+            w3nameUrl || deploymentUrl
+          }, W3name: ${name}`
+        );
+  
+        // Refresh the user's webpages
+        const updatedWebpages = await getUserWebpages(userId);
+        setUserWebpages(updatedWebpages as Webpage[]);
+      } catch (error) {
+        console.error("Deployment failed:", error);
+        setDeploymentError("Deployment failed. Please try again.");
+      } finally {
+        setIsDeploying(false);
+      }
+    };
+
+    const handleEdit = async (webpage: Webpage) => {
+      setSelectedWebpage(webpage);
+      setDomain(webpage.webpages.domain);
+      const webpageContent = await getWebpageContent(webpage.webpages.id);
+      setContent(webpageContent);
+      setW3name(webpage.webpages.name);
+      setActiveTab("Deploy");
+    };
+
     return (
         <div className="min-h-screen bg-background text-gray-300">
             <div className="flex">
@@ -49,7 +162,7 @@ export default function Dashboard() {
                     setActiveItem={setActiveTab}
                 />
                 <div className="flex-1 p-10 ml-64">
-                    <h1 className="text-4xl font-bold mb-8 text-white">
+                    <h1 className="text-4xl font-bold mb-5 text-white">
                         Welcome to your dashboard!
                     </h1>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -61,7 +174,9 @@ export default function Dashboard() {
                                 <Globe className="h-4 w-4 text-gray-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-white">0</div>
+                                <div className="text-2xl font-bold text-white">
+                                    {userWebpages.length}
+                                </div>
                             </CardContent>
                         </Card>
                         <Card className="bg-[#0a0a0a] border-[#18181b]">
@@ -73,8 +188,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                    N/A
-                  {/* {userWebpages.length > 0
+                  {userWebpages.length > 0
                     ? new Date(
                         Math.max(
                           ...userWebpages
@@ -82,7 +196,7 @@ export default function Dashboard() {
                             .map((w) => w.deployments!.deployedAt!.getTime())
                         )
                       ).toLocaleDateString()
-                    : "N/A"} */}
+                    : "N/A"}
                 </div>
               </CardContent>
             </Card>
@@ -95,7 +209,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
-                  {/* {userWebpages.filter((w) => w.deployments).length} */}
+                  {userWebpages.filter((w) => w.deployments).length}
                 </div>
               </CardContent>
             </Card>
@@ -147,29 +261,24 @@ export default function Dashboard() {
                       />
                     </div>
                     <Button
-                    //   onClick={selectedWebpage ? handleUpdate : handleDeploy}
-                    //   disabled={
-                    //     isDeploying ||
-                    //     !domain ||
-                    //     !content ||
-                    //     !isInitialized ||
-                    //     userId === null
-                    //   }
+                      onClick={handleDeploy}
+                      disabled={
+                        isDeploying ||
+                        !domain ||
+                        !content ||
+                        !isInitialized ||
+                        userId === null
+                      }
                       size="lg"
                       className="bg-blue-600 hover:bg-blue-500 text-white text-md"
                     >
-                        {selectedWebpage ? "Update Website" : "Deploy to H3X"}
-                    </Button>
-
-                      {/* {isDeploying ? (
+                      {isDeploying ? (
                         <>
                           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          {selectedWebpage ? "Updating..." : "Deploying..."}
+                          Deploying...
                         </>
-                      ) : selectedWebpage ? (
-                        "Update Website"
                       ) : (
-                        "Deploy to HTTP3"
+                        "Deploy to H3X"
                       )}
                     </Button>
                     {deploymentError && (
@@ -177,7 +286,7 @@ export default function Dashboard() {
                     )}
                     {deployedUrl && (
                       <DeploymentVisual deployedUrl={deployedUrl} />
-                    )} */}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -201,6 +310,8 @@ export default function Dashboard() {
                     </div>
                   </CardContent>
                 </Card>
+
+                
               )}
             </>
           )}
